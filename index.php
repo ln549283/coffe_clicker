@@ -60,6 +60,7 @@
     const background = this.add.image(0, 0, 'background').setOrigin(0);
     background.setScale(screenWidth / background.width, screenHeight / background.height);
 
+
     this.time.delayedCall(500, () => {
       this.scene.start('MainScene');
     }, [], this);
@@ -71,11 +72,16 @@
       this.counter = 0;
       this.countCoffeeText = null;
       this.elements = [
-        { key: 'vendeur', name: 'Vendeur', count: 0 },
-        { key: 'cuisto', name: 'Barista', count: 0 },
-        { key: 'parking', name: 'Parking', count: 0 }
+        { key: 'vendeur', name: 'Vendeur', count: 0, speed:10 },
+        { key: 'cuisto', name: 'Barista', count: 0, speed:25 },
+        { key: 'parking', name: 'Parking', count: 0, speed:60 }
       ];
       this.textElements = {};
+      this.nextIncrementTime = null;
+      this.speed = 1000;
+      this.clickSound = null;
+      this.lvlUpSound = null;
+
     }
 
     create() {
@@ -97,6 +103,13 @@
         const yPos = 400 + index * 60;
         this.createInteractiveButton(xPos, yPos, 'greyRectNormal', `buy${element.name}`, () => this.buyElement(element), element);
       });
+
+      
+      const clickSound = this.sound.add('click');
+      this.clickSound = clickSound;
+
+      const lvlUpSound = this.sound.add('lvlup');
+      this.lvlUpSound = lvlUpSound;
     }
 
     createTextElements() {
@@ -139,27 +152,34 @@
     update(time, delta) {
       if (time > this.nextIncrementTime) {
         this.counterAuto();
-        this.nextIncrementTime = time + 200; // Prochain moment pour incrémenter le compteur
+        this.nextIncrementTime = time + this.speed; // Prochain moment pour incrémenter le compteur
       }
     }
 
     counterAuto() {
-      this.counter = Math.round(this.counter + (this.elements.reduce((total, element) => total + element.count, 0)));
+      // this.counter = Math.round(this.counter + (this.elements.reduce((total, element) => total + element.count, 0)));
+      this.counter++;
       this.countCoffeeText.setText(`Compteur : ${this.counter}`);
       this.updateButtonStates();
     }
 
     updateCounter() {
+      this.clickSound.play();
       this.counter++;
       this.countCoffeeText.setText(`Compteur : ${this.counter}`);
       this.updateButtonStates();
     }
 
     buyElement(element) {
-      this.updateCounterMinus((element.count + 1) * costs[element.key], element);
-      element.count++;
-      this.textElements[element.key].setText(`${element.name} : ${(element.count + 1) * costs[element.key]}`);
-      this.textElements[`buy${element.name}`].buttonText.setText(`${element.name} : ${(element.count + 2) * costs[element.key]}`);
+      
+      this.lvlUpSound.play();
+      if(this.counter >= (element.count + 1) * costs[element.key]){
+        this.updateCounterMinus((element.count + 1) * costs[element.key], element);
+        element.count++;
+        this.textElements[element.key].setText(`${element.name} : ${element.count}`);
+        this.textElements[`buy${element.name}`].buttonText.setText(`${element.name} : ${(element.count + 2) * costs[element.key]}`);
+      }
+      this.speed -= element.speed;
     }
 
     updateCounterMinus(value, element) {
